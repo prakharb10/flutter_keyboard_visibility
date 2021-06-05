@@ -3,6 +3,9 @@ package com.jrai.flutter_keyboard_visibility;
 import android.app.Activity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.Context;
+import android.view.inputmethod.InputMethodManager;
+import java.lang.reflect.Method;
 
 import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
@@ -81,14 +84,26 @@ public class FlutterKeyboardVisibilityPlugin implements FlutterPlugin, ActivityA
     this.eventSink = null;
   }
 
+  public boolean isSystemKeyboardVisible(Context context) {
+    try {
+      final InputMethodManager manager = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+      final Method windowHeightMethod = InputMethodManager.class.getMethod("getInputMethodWindowVisibleHeight");
+      final int height = (int) windowHeightMethod.invoke(manager);
+      return height > 0;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
 
   private void listenForKeyboard(Activity activity) {
     mainView = activity.<ViewGroup>findViewById(android.R.id.content);
+    final Activity act = activity;
 
     ViewCompat.setOnApplyWindowInsetsListener(mainView, new OnApplyWindowInsetsListener() {
       @Override
       public WindowInsetsCompat onApplyWindowInsets(View v, WindowInsetsCompat insets) {
-        isVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+        isVisible = isSystemKeyboardVisible(act.getBaseContext());
         if (eventSink != null) {
           eventSink.success(isVisible ? 1 : 0);
         }
